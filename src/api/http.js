@@ -17,8 +17,9 @@ export async function apiFetch(path, { method = "GET", body, headers } = {}) {
       ...(headers || {})
     },
     body: body ? JSON.stringify(body) : undefined
+    
   });
-
+  
   if (!res.ok) throw await parseError(res);
 
   // 204 No Content

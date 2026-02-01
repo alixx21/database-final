@@ -48,8 +48,18 @@
 
 <script src="./api.js"></script>
 <script>
+  const token = sessionStorage.getItem("token");
+if (!token) location.href = "./index.html";
+
+const payload = JSON.parse(atob(token.split(".")[1]));
+if (payload.role !== "ADMIN") {
+  alert("Access denied");
+  location.href = "./index.html";
+}
+
 const $ = (id) => document.getElementById(id);
 let editingId = null;
+
 
 function showError(msg){ $("error").innerHTML = msg ? `<div class="alert">${msg}</div>` : ""; }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]))}
@@ -140,6 +150,8 @@ $("form").onsubmit = async (e) => {
 };
 
 load().catch(e => showError(e.message));
+
+
 </script>
 </body>
 </html>

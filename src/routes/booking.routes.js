@@ -1,11 +1,18 @@
 const router = require('express').Router();
 const auth = require('../middlewares/auth.middleware');
 const role = require('../middlewares/role.middleware');
-const controller = require('../controllers/booking.controller');
+const bookingController = require('../controllers/booking.controller');
 
-router.post('/', auth, role('USER'), controller.createBooking);
-router.put('/:id/cancel', auth, role('USER'), controller.cancelBooking);
-router.put('/:id/confirm', auth, role('ADMIN'), controller.confirmBooking);
-router.get('/availability', controller.checkAvailability);
+// create booking (USER)
+router.post('/', auth, role('USER'), bookingController.createBooking);
+
+// cancel booking (USER)
+router.put('/:id/cancel', auth, role('USER'), bookingController.cancelBooking);
+
+// confirm booking (ADMIN)
+router.put('/:id/confirm', auth, role('ADMIN'), bookingController.confirmBooking);
+
+// check availability (public)
+router.get('/availability', bookingController.checkAvailability);
 
 module.exports = router;

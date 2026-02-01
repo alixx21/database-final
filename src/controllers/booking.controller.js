@@ -1,45 +1,57 @@
 const Booking = require('../models/booking.model');
+const Room = require('../models/room.model');
 
+/**
+ * CREATE BOOKING
+ */
 exports.createBooking = async (req, res) => {
-  const { roomId, checkIn, checkOut, totalPrice } = req.body;
+  const userId = req.user.id;
+  const { roomId } = req.body;
 
-  if (new Date(checkIn) >= new Date(checkOut)) {
-    return res.status(400).json({ message: 'Invalid date range' });
+  if (!roomId) {
+    return res.status(400).json({ error: "roomId is required" });
   }
 
-  const overlap = await Booking.findOne({
+  const room = await Room.findById(roomId);
+  if (!room) {
+    return res.status(404).json({ error: "Room not found" });
+  }
+
+  const exists = await Booking.findOne({
     roomId,
-    status: { $ne: 'CANCELED' },
-    checkIn: { $lt: new Date(checkOut) },
-    checkOut: { $gt: new Date(checkIn) }
+    status: { $in: ["PENDING", "CONFIRMED"] }
   });
 
-  if (overlap) {
-    return res.status(409).json({ message: 'Room not available' });
+  if (exists) {
+    return res.status(400).json({ error: "Room already booked" });
   }
 
+  const checkIn = new Date();
+  const checkOut = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+
   const booking = await Booking.create({
-    userId: req.user.userId,
+    userId,
     roomId,
     checkIn,
     checkOut,
-    totalPrice,
-    status: 'PENDING',
-    statusHistory: [
-      { status: 'PENDING', changedAt: new Date() }
-    ]
+    totalPrice: room.pricePerNight * 3,
+    status: "CONFIRMED",
+    statusHistory: [{ status: "CONFIRMED", changedAt: new Date() }],
+    createdAt: new Date()
   });
 
   res.status(201).json(booking);
 };
 
 
-
+/**
+ * CANCEL BOOKING
+ */
 exports.cancelBooking = async (req, res) => {
   const booking = await Booking.findOneAndUpdate(
     {
       _id: req.params.id,
-      userId: req.user.userId,
+      userId: req.user.userId || req.user.id,
       status: { $ne: 'CANCELED' }
     },
     {
@@ -61,7 +73,9 @@ exports.cancelBooking = async (req, res) => {
   res.json(booking);
 };
 
-
+/**
+ * CONFIRM BOOKING (admin / payment success)
+ */
 exports.confirmBooking = async (req, res) => {
   const booking = await Booking.findOneAndUpdate(
     {
@@ -87,10 +101,15 @@ exports.confirmBooking = async (req, res) => {
   res.json(booking);
 };
 
-
-
+/**
+ * CHECK AVAILABILITY
+ */
 exports.checkAvailability = async (req, res) => {
   const { roomId, checkIn, checkOut } = req.query;
+
+  if (!roomId || !checkIn || !checkOut) {
+    return res.status(400).json({ message: 'roomId, checkIn, checkOut required' });
+  }
 
   const conflict = await Booking.findOne({
     roomId,

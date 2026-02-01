@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"/>
+  <title>My bookings</title>
+  <link rel="stylesheet" href="./styles.css"/>
+</head>
+<body>
+<div class="container">
+  <h1>My bookings</h1>
+  <div id="list"></div>
+</div>
+
+<script>
+    const t = sessionStorage.getItem("token");
+if (!t) location.href = "./index.html";
+
+const API = "http://localhost:3000";
+const token = sessionStorage.getItem("token");
+
+if (!token) location.href = "./index.html";
+
+fetch(API + "/bookings/my", {
+  headers: { Authorization: "Bearer " + token }
+})
+.then(r => r.json())
+.then(data => {
+  const el = document.getElementById("list");
+  if (!data.length) {
+    el.innerHTML = "<p>No bookings</p>";
+    return;
+  }
+
+  el.innerHTML = data.map(b => `
+    <div class="card">
+      <div>Room: ${b.roomId}</div>
+      <div>Status: ${b.status}</div>
+      <div>
+        ${new Date(b.checkIn).toDateString()} →
+        ${new Date(b.checkOut).toDateString()}
+      </div>
+      <div>Total: ${b.totalPrice}</div>
+    </div>
+  `).join("");
+});
+</script>
+</body>
+</html>

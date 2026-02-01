@@ -62,6 +62,16 @@
 
 <script src="./api.js"></script>
 <script>
+  
+const token = sessionStorage.getItem("token");
+if (!token) location.href = "./index.html";
+
+const payload = JSON.parse(atob(token.split(".")[1]));
+if (payload.role !== "ADMIN") {
+  alert("Access denied");
+  location.href = "./index.html";
+}
+
 const $ = (id) => document.getElementById(id);
 let editingId = null;
 
@@ -191,6 +201,48 @@ $("form").onsubmit = async (e) => {
   await loadHotelsForSelects();
   await loadRooms();
 })();
+document.getElementById("saveRoomBtn").onclick = async () => {
+  try {
+    const hotelId = document.getElementById("hotelSelect").value;
+    const roomNumber = document.getElementById("roomNumber").value.trim();
+    const type = document.getElementById("roomType").value;
+    const pricePerNight = Number(document.getElementById("price").value);
+    const amenitiesRaw = document.getElementById("amenities").value;
+    const isActive = document.getElementById("isActive").checked;
+
+    if (!hotelId) {
+      showToast("Please select hotel");
+      return;
+    }
+    if (!roomNumber || !type || !pricePerNight) {
+      showToast("Fill all required fields");
+      return;
+    }
+
+    const amenities = amenitiesRaw
+      ? amenitiesRaw.split(",").map(a => a.trim()).filter(Boolean)
+      : [];
+
+    await api("/api/rooms", {
+      method: "POST",
+      body: {
+        hotelId,
+        roomNumber,
+        type,
+        pricePerNight,
+        amenities,
+        isActive
+      }
+    });
+
+    showToast("Room added successfully", "success");
+    loadRooms();
+  } catch (e) {
+    showToast(e.message);
+  }
+};
+
+
 </script>
 </body>
 </html>

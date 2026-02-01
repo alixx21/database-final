@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const adminOnly = require("../middleware/adminOnly");
+
+const auth = require("../middlewares/auth.middleware");
+const roleOnly = require("../middlewares/role.middleware");
 
 const {
   createRoom,
@@ -16,9 +18,10 @@ router.get("/", getRooms);
 router.get("/:id", getRoomById);
 
 // ADMIN
-router.post("/", adminOnly, createRoom);
-router.put("/:id", adminOnly, updateRoomPut);
-router.patch("/:id", adminOnly, updateRoomPatch);
-router.delete("/:id", adminOnly, deleteRoom);
+router.post("/", auth, roleOnly("admin"), createRoom);
+router.put("/:id", auth, roleOnly("admin"), updateRoomPut);
+router.patch("/:id", auth, roleOnly("admin"), updateRoomPatch);
+router.delete("/:id", auth, roleOnly("admin"), deleteRoom);
 
+module.exports = router;
 module.exports = router;

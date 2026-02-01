@@ -7,84 +7,249 @@
   <link rel="stylesheet" href="./styles.css"/>
 </head>
 <body>
+
 <div class="container">
   <div class="topbar">
     <div class="nav">
       <a class="badge" href="./index.html">Hotels</a>
-      <a class="badge" href="./admin-hotels.html">Admin Hotels</a>
-      <a class="badge" href="./admin-rooms.html">Admin Rooms</a>
+      <a class="badge hidden" id="adminHotelsLink" href="./admin-hotels.html">Admin Hotels</a>
+      <a class="badge hidden" id="adminRoomsLink" href="./admin-rooms.html">Admin Rooms</a>
+      <a class="badge hidden" id="myBookingsLink" href="./my-bookings.html">
+  My bookings
+</a>
+    <button onclick="logout()">Logout</button>
+
     </div>
-    <span class="small">Hotel Booking UI</span>
+    
+
+    <div class="row">
+      <button id="openAuthBtn" class="badge">Login</button>
+      <span class="small">Hotel Booking UI</span>
+    </div>
   </div>
 
   <div class="card">
     <h1 class="h">Hotels</h1>
+
     <div class="row">
       <input id="city" placeholder="Filter by city (optional)"/>
       <button id="btnLoad">Search</button>
       <button class="secondary" id="btnReset">Reset</button>
       <span class="small" id="status"></span>
     </div>
+
     <div class="hr"></div>
     <div id="error"></div>
     <div class="grid" id="list"></div>
   </div>
 </div>
 
-<script src="./api.js"></script>
+<!-- AUTH MODAL -->
+<div id="authModal" class="modal hidden">
+  <div class="modal-content">
+    <span id="closeAuth" class="close">&times;</span>
+
+    <h3 id="authTitle">Login</h3>
+
+    <input id="fullName" placeholder="Full name" class="hidden"/>
+    <input id="email" placeholder="Email"/>
+    <input id="password" type="password" placeholder="Password"/>
+    <input id="adminSecret" placeholder="Admin secret" class="hidden"/>
+
+    <button onclick="login()">Login</button>
+    <button onclick="showRegister()">Register</button>
+    <button id="confirmRegisterBtn" class="hidden" onclick="register()">Confirm Register</button>
+
+    <button id="adminRegisterBtn" class="hidden" onclick="registerAdmin()">Register Admin</button>
+  </div>
+</div>
+<div id="toast" class="toast hidden"></div>
+
+
 <script>
+/* =====================
+   HELPERS
+===================== */
+const API = 'http://localhost:3000';
 const $ = (id) => document.getElementById(id);
 
-function showError(msg) {
-  $("error").innerHTML = msg ? `<div class="alert">${msg}</div>` : "";
+function parseJwt(token) {
+  return JSON.parse(atob(token.split('.')[1]));
+}
+
+function saveToken(token) {
+  sessionStorage.setItem('token', token);
+}
+
+function getToken() {
+  return sessionStorage.getItem('token');
+}
+
+function authHeaders() {
+  const t = getToken();
+  return t ? { Authorization: 'Bearer ' + t } : {};
+}
+
+function qs(obj){
+  const p = new URLSearchParams();
+  Object.entries(obj || {}).forEach(([k,v]) => v && p.append(k,v));
+  return p.toString() ? '?' + p.toString() : '';
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g,m=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",
+    '"':"&quot;","'":"&#039;"
+  }[m]));
+}
+
+function showToast(message, type = "error") {
+  const t = document.getElementById("toast");
+  t.textContent = message;
+  t.className = `toast ${type}`;
+  setTimeout(() => t.classList.remove("hidden"), 10);
+  setTimeout(() => t.classList.add("hidden"), 3000);
+}
+
+
+/* =====================
+   AUTH MODAL LOGIC
+===================== */
+const modal = $('authModal');
+
+$('openAuthBtn').onclick = () => modal.classList.remove('hidden');
+$('closeAuth').onclick = () => modal.classList.add('hidden');
+
+function showRegister() {
+  $('authTitle').textContent = 'Register';
+  $('fullName').classList.remove('hidden');
+  $('confirmRegisterBtn').classList.remove('hidden');
+}
+
+function logout() {
+  sessionStorage.removeItem("token");
+  location.reload();
+}
+
+
+async function login() {
+  const res = await fetch(API + '/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: $('email').value,
+      password: $('password').value
+    })
+  });
+
+  const data = await res.json();
+  if (!res.ok) return alert(data.message);
+
+  saveToken(data.token);
+  location.reload();
+}
+
+async function register() {
+  const res = await fetch(API + '/auth/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      fullName: $('fullName').value,
+      email: $('email').value,
+      password: $('password').value
+    })
+  });
+
+  const data = await res.json();
+  if (!res.ok) return alert(data.message);
+
+  saveToken(data.token);
+  location.reload();
+}
+
+async function registerAdmin() {
+  const res = await fetch(API + '/auth/register-admin', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      fullName: $('fullName').value,
+      email: $('email').value,
+      password: $('password').value,
+      adminSecret: $('adminSecret').value
+    })
+  });
+
+  const data = await res.json();
+  if (!res.ok) return alert(data.message);
+
+  saveToken(data.token);
+  location.reload();
+}
+
+/* =====================
+   ROLE-BASED UI
+===================== */
+(function initAuth() {
+  const token = getToken();
+  if (!token) {
+    modal.classList.remove('hidden');
+    return;
+  }
+  $('myBookingsLink').classList.remove('hidden');
+
+
+  const { role } = parseJwt(token);
+
+  $('openAuthBtn').style.display = 'none';
+
+  if (role === 'ADMIN') {
+    $('adminHotelsLink').classList.remove('hidden');
+    $('adminRoomsLink').classList.remove('hidden');
+  }
+})();
+
+async function api(path) {
+  const res = await fetch(API + path, { headers: authHeaders() });
+  if (!res.ok) throw new Error('Request failed');
+  return res.json();
 }
 
 async function loadHotels() {
-  showError("");
-  $("status").textContent = "Loading...";
-  $("list").classList.add("loading");
-  try {
-    const city = $("city").value.trim();
-    const data = await api("/api/hotels" + qs({ city }));
-    render(data || []);
-    $("status").textContent = `${(data||[]).length} hotels`;
-  } catch (e) {
-    showError(e.message);
-    $("status").textContent = "";
-  } finally {
-    $("list").classList.remove("loading");
-  }
+  $('status').textContent = 'Loading...';
+  const data = await api('/api/hotels' + qs({ city: $('city').value.trim() }));
+  render(data || []);
+  $('status').textContent = `${(data||[]).length} hotels`;
 }
 
 function render(items) {
-  const el = $("list");
+  const el = $('list');
   if (!items.length) {
     el.innerHTML = `<div class="small">No hotels found.</div>`;
     return;
   }
+
   el.innerHTML = items.map(h => `
     <div class="card item">
       <div>
-        <h3>${escapeHtml(h.name || "")}</h3>
-        <div class="meta">${escapeHtml(h.city || "")} • ${escapeHtml(h.address || "")}</div>
+        <h3>${escapeHtml(h.name)}</h3>
+        <div class="meta">${escapeHtml(h.city)} • ${escapeHtml(h.address)}</div>
         <div class="pills">
           <span class="pill">rating: ${h.rating ?? 0}</span>
-          <span class="pill">id: ${escapeHtml(h._id || "")}</span>
+          <span class="pill">id: ${escapeHtml(h._id)}</span>
         </div>
       </div>
-      <div class="row">
-        <a href="./hotel.html?hotelId=${encodeURIComponent(h._id)}"><button>Rooms</button></a>
-      </div>
+      <a href="./hotel.html?hotelId=${h._id}">
+        <button>Rooms</button>
+      </a>
     </div>
-  `).join("");
+  `).join('');
 }
 
-function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]))}
-
-$("btnLoad").onclick = loadHotels;
-$("btnReset").onclick = () => { $("city").value=""; loadHotels(); };
+$('btnLoad').onclick = loadHotels;
+$('btnReset').onclick = () => { $('city').value=''; loadHotels(); };
 
 loadHotels();
 </script>
+
 </body>
 </html>

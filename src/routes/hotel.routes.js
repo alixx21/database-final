@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const adminOnly = require("../middleware/adminOnly");
+
+const auth = require("../middlewares/auth.middleware");
+const roleOnly = require("../middlewares/role.middleware");
 
 const {
   createHotel,
@@ -11,14 +13,12 @@ const {
   deleteHotel
 } = require("../controllers/hotel.controller");
 
-// PUBLIC
 router.get("/", getHotels);
 router.get("/:id", getHotelById);
 
-// ADMIN
-router.post("/", adminOnly, createHotel);
-router.put("/:id", adminOnly, updateHotelPut);
-router.patch("/:id", adminOnly, updateHotelPatch);
-router.delete("/:id", adminOnly, deleteHotel);
+router.post("/", auth, roleOnly("ADMIN"), createHotel);
+router.put("/:id", auth, roleOnly("ADMIN"), updateHotelPut);
+router.patch("/:id", auth, roleOnly("ADMIN"), updateHotelPatch);
+router.delete("/:id", auth, roleOnly("ADMIN"), deleteHotel);
 
 module.exports = router;

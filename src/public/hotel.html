@@ -25,7 +25,7 @@
       <input id="maxPrice" type="number" placeholder="Max price"/>
       <label class="row small">
         <input id="onlyActive" type="checkbox" checked/>
-        only active
+        Only active
       </label>
       <button id="btnLoad">Apply</button>
       <span class="small" id="status"></span>
@@ -52,6 +52,20 @@ if (!hotelId) {
 } else {
   loadAll();
 }
+async function bookRoom(roomId) {
+  try {
+    await api("/bookings", {
+      method: "POST",
+      body: { roomId }
+    });
+
+    alert("Room booked!");
+    loadRooms();
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
 
 async function loadAll(){
   showError("");
@@ -103,6 +117,7 @@ function render(items){
       </div>
       <div class="row">
         <a href="./room.html?roomId=${encodeURIComponent(r._id)}"><button>Details</button></a>
+${r.isBooked ? "" : `<button onclick="bookRoom('${r._id}')">Book</button>`}
       </div>
     </div>
   `).join("");

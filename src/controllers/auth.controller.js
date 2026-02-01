@@ -7,8 +7,10 @@ const { secret, expiresIn } = require("../config/jwt");
 // REGISTER (обычный юзер)
 // ========================
 exports.register = async (req, res) => {
+
   try {
     const { fullName, email, password } = req.body;
+
 
     const exists = await User.findOne({ email });
     if (exists) {
@@ -17,6 +19,7 @@ exports.register = async (req, res) => {
 
     const passwordHash = await hashPassword(password);
 
+  
     const user = await User.create({
       fullName,
       email,

@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Hotel Rooms</title>
+  <link rel="stylesheet" href="./styles.css"/>
+</head>
+<body>
+<div class="container">
+  <div class="topbar">
+    <div class="nav">
+      <a class="badge" href="./index.html">Hotels</a>
+      <a class="badge" href="./admin-hotels.html">Admin Hotels</a>
+      <a class="badge" href="./admin-rooms.html">Admin Rooms</a>
+    </div>
+    <span class="small" id="hotelName"></span>
+  </div>
+
+  <div class="card">
+    <h1 class="h">Rooms</h1>
+
+    <div class="row">
+      <input id="minPrice" type="number" placeholder="Min price"/>
+      <input id="maxPrice" type="number" placeholder="Max price"/>
+      <label class="row small">
+        <input id="onlyActive" type="checkbox" checked/>
+        only active
+      </label>
+      <button id="btnLoad">Apply</button>
+      <span class="small" id="status"></span>
+    </div>
+
+    <div class="hr"></div>
+    <div id="error"></div>
+    <div class="grid" id="list"></div>
+  </div>
+</div>
+
+<script src="./api.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+
+function showError(msg){ $("error").innerHTML = msg ? `<div class="alert">${msg}</div>` : ""; }
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]))}
+
+const params = new URLSearchParams(location.search);
+const hotelId = params.get("hotelId");
+
+if (!hotelId) {
+  showError("hotelId is missing in URL. Go back to Hotels.");
+} else {
+  loadAll();
+}
+
+async function loadAll(){
+  showError("");
+  $("status").textContent = "Loading...";
+  $("list").classList.add("loading");
+  try {
+    const [hotel, rooms] = await Promise.all([
+      api("/api/hotels/" + encodeURIComponent(hotelId)).catch(()=>null),
+      loadRooms()
+    ]);
+    $("hotelName").textContent = hotel ? `${hotel.name} • ${hotel.city}` : "";
+    $("status").textContent = `${(rooms||[]).length} rooms`;
+  } catch(e){
+    showError(e.message);
+    $("status").textContent = "";
+  } finally {
+    $("list").classList.remove("loading");
+  }
+}
+
+async function loadRooms(){
+  const minPrice = $("minPrice").value;
+  const maxPrice = $("maxPrice").value;
+  const onlyActive = $("onlyActive").checked;
+
+  const data = await api("/api/rooms" + qs({
+    hotelId,
+    minPrice: minPrice === "" ? undefined : Number(minPrice),
+    maxPrice: maxPrice === "" ? undefined : Number(maxPrice),
+    isActive: onlyActive ? true : undefined
+  }));
+
+  render(data || []);
+  return data;
+}
+
+function render(items){
+  const el = $("list");
+  if (!items.length) { el.innerHTML = `<div class="small">No rooms found.</div>`; return; }
+
+  el.innerHTML = items.map(r => `
+    <div class="card item">
+      <div>
+        <h3>Room ${escapeHtml(r.roomNumber)} • ${escapeHtml(r.type)}</h3>
+        <div class="meta">$${r.pricePerNight}/night • ${r.isActive ? "Active" : "Inactive"}</div>
+        <div class="pills">
+          ${(r.amenities||[]).map(a => `<span class="pill">${escapeHtml(a)}</span>`).join("")}
+        </div>
+      </div>
+      <div class="row">
+        <a href="./room.html?roomId=${encodeURIComponent(r._id)}"><button>Details</button></a>
+      </div>
+    </div>
+  `).join("");
+}
+
+$("btnLoad").onclick = loadAll;
+</script>
+</body>
+</html>

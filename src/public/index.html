@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Hotels</title>
+  <link rel="stylesheet" href="./styles.css"/>
+</head>
+<body>
+<div class="container">
+  <div class="topbar">
+    <div class="nav">
+      <a class="badge" href="./index.html">Hotels</a>
+      <a class="badge" href="./admin-hotels.html">Admin Hotels</a>
+      <a class="badge" href="./admin-rooms.html">Admin Rooms</a>
+    </div>
+    <span class="small">Hotel Booking UI</span>
+  </div>
+
+  <div class="card">
+    <h1 class="h">Hotels</h1>
+    <div class="row">
+      <input id="city" placeholder="Filter by city (optional)"/>
+      <button id="btnLoad">Search</button>
+      <button class="secondary" id="btnReset">Reset</button>
+      <span class="small" id="status"></span>
+    </div>
+    <div class="hr"></div>
+    <div id="error"></div>
+    <div class="grid" id="list"></div>
+  </div>
+</div>
+
+<script src="./api.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+
+function showError(msg) {
+  $("error").innerHTML = msg ? `<div class="alert">${msg}</div>` : "";
+}
+
+async function loadHotels() {
+  showError("");
+  $("status").textContent = "Loading...";
+  $("list").classList.add("loading");
+  try {
+    const city = $("city").value.trim();
+    const data = await api("/api/hotels" + qs({ city }));
+    render(data || []);
+    $("status").textContent = `${(data||[]).length} hotels`;
+  } catch (e) {
+    showError(e.message);
+    $("status").textContent = "";
+  } finally {
+    $("list").classList.remove("loading");
+  }
+}
+
+function render(items) {
+  const el = $("list");
+  if (!items.length) {
+    el.innerHTML = `<div class="small">No hotels found.</div>`;
+    return;
+  }
+  el.innerHTML = items.map(h => `
+    <div class="card item">
+      <div>
+        <h3>${escapeHtml(h.name || "")}</h3>
+        <div class="meta">${escapeHtml(h.city || "")} • ${escapeHtml(h.address || "")}</div>
+        <div class="pills">
+          <span class="pill">rating: ${h.rating ?? 0}</span>
+          <span class="pill">id: ${escapeHtml(h._id || "")}</span>
+        </div>
+      </div>
+      <div class="row">
+        <a href="./hotel.html?hotelId=${encodeURIComponent(h._id)}"><button>Rooms</button></a>
+      </div>
+    </div>
+  `).join("");
+}
+
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]))}
+
+$("btnLoad").onclick = loadHotels;
+$("btnReset").onclick = () => { $("city").value=""; loadHotels(); };
+
+loadHotels();
+</script>
+</body>
+</html>

@@ -1,20 +1,17 @@
-import Hotel from "../models/hotel.model.js";
+const Hotel = require("../models/hotel.model");
+const mongoose = require("mongoose");
 
-export const createHotel = async (req, res) => {
+const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
+
+exports.createHotel = async (req, res) => {
   const { name, city, address, description, rating } = req.body;
+  if (!name || !city || !address) return res.status(400).json({ error: "name, city, address are required" });
 
-  const hotel = await Hotel.create({
-    name,
-    city,
-    address,
-    description,
-    rating
-  });
-
-  return res.status(201).json(hotel);
+  const created = await Hotel.create({ name, city, address, description, rating });
+  return res.status(201).json(created);
 };
 
-export const getHotels = async (req, res) => {
+exports.getHotels = async (req, res) => {
   const filter = {};
   if (req.query.city) filter.city = req.query.city;
 
@@ -22,34 +19,49 @@ export const getHotels = async (req, res) => {
   return res.json(hotels);
 };
 
-export const getHotelById = async (req, res) => {
+exports.getHotelById = async (req, res) => {
+  if (!isValidId(req.params.id)) return res.status(400).json({ error: "Invalid hotel id" });
+
   const hotel = await Hotel.findById(req.params.id).lean();
+  if (!hotel) return res.status(404).json({ error: "Hotel not found" });
+
   return res.json(hotel);
 };
 
-export const updateHotelPut = async (req, res) => {
+exports.updateHotelPut = async (req, res) => {
+  if (!isValidId(req.params.id)) return res.status(400).json({ error: "Invalid hotel id" });
+
   const { name, city, address, description, rating } = req.body;
+  if (!name || !city || !address) return res.status(400).json({ error: "name, city, address are required for PUT" });
 
   const updated = await Hotel.findByIdAndUpdate(
     req.params.id,
     { name, city, address, description, rating },
     { new: true }
-  );
+  ).lean();
+
+  if (!updated) return res.status(404).json({ error: "Hotel not found" });
+  return res.json(updated);
+};
+
+exports.updateHotelPatch = async (req, res) => {
+  if (!isValidId(req.params.id)) return res.status(400).json({ error: "Invalid hotel id" });
+
+  const allowed = ["name", "city", "address", "description", "rating"];
+  const $set = {};
+  for (const k of allowed) if (req.body[k] !== undefined) $set[k] = req.body[k];
+
+  const updated = await Hotel.findByIdAndUpdate(req.params.id, { $set }, { new: true }).lean();
+  if (!updated) return res.status(404).json({ error: "Hotel not found" });
 
   return res.json(updated);
 };
 
-export const updateHotelPatch = async (req, res) => {
-  const updated = await Hotel.findByIdAndUpdate(
-    req.params.id,
-    { $set: req.body },
-    { new: true }
-  );
+exports.deleteHotel = async (req, res) => {
+  if (!isValidId(req.params.id)) return res.status(400).json({ error: "Invalid hotel id" });
 
-  return res.json(updated);
-};
+  const deleted = await Hotel.findByIdAndDelete(req.params.id).lean();
+  if (!deleted) return res.status(404).json({ error: "Hotel not found" });
 
-export const deleteHotel = async (req, res) => {
-  await Hotel.findByIdAndDelete(req.params.id);
   return res.status(204).send();
 };

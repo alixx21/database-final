@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Register</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <div class="container">
+    <h1 class="h">Регистрация</h1>
+
+    <div class="card">
+      <div class="row">
+        <input id="fullName" type="text" placeholder="Полное имя" />
+      </div>
+
+      <div class="row">
+        <input id="email" type="email" placeholder="Email" />
+      </div>
+
+      <div class="row">
+        <input id="password" type="password" placeholder="Пароль" />
+      </div>
+
+      <!-- Только админ будет вводить секрет -->
+      <div class="row">
+        <input id="adminSecret" type="text" placeholder="Admin Secret (если админ)" />
+      </div>
+
+      <button onclick="register()">Зарегистрироваться</button>
+
+      <div id="result" class="small" style="margin-top:10px;"></div>
+    </div>
+  </div>
+
+<script>
+async function register() {
+  const fullName = document.getElementById("fullName").value;
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+  const adminSecret = document.getElementById("adminSecret").value;
+
+  const isAdmin = adminSecret.trim() !== "";
+
+  const url = isAdmin
+    ? "/api/auth/register-admin"
+    : "/api/auth/register";
+
+  const body = isAdmin
+    ? { fullName, email, password, adminSecret }
+    : { fullName, email, password };
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+
+  const data = await res.json();
+
+  document.getElementById("result").innerText = data.message || JSON.stringify(data);
+
+  if (data.token) {
+    localStorage.setItem("token", data.token);
+  }
+}
+</script>
+
+</body>
+</html>

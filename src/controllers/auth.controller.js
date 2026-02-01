@@ -4,13 +4,15 @@ const { hashPassword, comparePassword } = require("../utils/password");
 const { secret, expiresIn } = require("../config/jwt");
 
 // ========================
-// REGISTER (обычный юзер)
+// REGISTER (USER)
 // ========================
 exports.register = async (req, res) => {
-
   try {
     const { fullName, email, password } = req.body;
 
+    if (!fullName || !email || !password) {
+      return res.status(400).json({ message: "fullName, email, password required" });
+    }
 
     const exists = await User.findOne({ email });
     if (exists) {
@@ -19,7 +21,6 @@ exports.register = async (req, res) => {
 
     const passwordHash = await hashPassword(password);
 
-  
     const user = await User.create({
       fullName,
       email,
@@ -33,7 +34,7 @@ exports.register = async (req, res) => {
       { expiresIn }
     );
 
-    res.status(201).json({
+    return res.status(201).json({
       message: "User registered",
       token,
       user: {
@@ -44,6 +45,7 @@ exports.register = async (req, res) => {
       }
     });
   } catch (e) {
+    console.error(e);
     return res.status(500).json({ message: "Server error" });
   }
 };
@@ -79,7 +81,7 @@ exports.registerAdmin = async (req, res) => {
       { expiresIn }
     );
 
-    res.status(201).json({
+    return res.status(201).json({
       message: "Admin registered",
       token,
       user: {
@@ -90,16 +92,21 @@ exports.registerAdmin = async (req, res) => {
       }
     });
   } catch (e) {
+    console.error(e);
     return res.status(500).json({ message: "Server error" });
   }
 };
 
 // ========================
-// LOGIN (оба — юзер/админ)
+// LOGIN (USER + ADMIN)
 // ========================
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: "email and password required" });
+    }
 
     const user = await User.findOne({ email });
     if (!user) {
@@ -117,7 +124,7 @@ exports.login = async (req, res) => {
       { expiresIn }
     );
 
-    res.json({
+    return res.json({
       message: "Login success",
       token,
       user: {
@@ -128,6 +135,7 @@ exports.login = async (req, res) => {
       }
     });
   } catch (e) {
+    console.error(e);
     return res.status(500).json({ message: "Server error" });
   }
 };

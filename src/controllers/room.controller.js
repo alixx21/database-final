@@ -1,10 +1,10 @@
-import mongoose from "mongoose";
-import Room from "../models/room.model.js";
-import Hotel from "../models/hotel.model.js";
+const mongoose = require("mongoose");
+const Room = require("../models/room.model");
+const Hotel = require("../models/hotel.model");
 
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
-export const createRoom = async (req, res) => {
+exports.createRoom = async (req, res) => {
   const { hotelId, roomNumber, type, pricePerNight, amenities, isActive } = req.body;
 
   if (!hotelId || !roomNumber || !type || pricePerNight === undefined) {
@@ -13,8 +13,6 @@ export const createRoom = async (req, res) => {
   if (!isValidObjectId(hotelId)) {
     return res.status(400).json({ error: "Invalid hotelId" });
   }
-
-  // строгий reference на hotels: отель должен существовать
   const hotelExists = await Hotel.exists({ _id: hotelId });
   if (!hotelExists) {
     return res.status(400).json({ error: "Hotel not found for given hotelId" });
@@ -32,7 +30,7 @@ export const createRoom = async (req, res) => {
   return res.status(201).json(room);
 };
 
-export const getRooms = async (req, res) => {
+exports.getRooms = async (req, res) => {
   const { hotelId, minPrice, maxPrice, isActive } = req.query;
 
   const filter = {};
@@ -42,14 +40,12 @@ export const getRooms = async (req, res) => {
     filter.hotelId = new mongoose.Types.ObjectId(hotelId);
   }
 
-  // фильтр по цене
   if (minPrice !== undefined || maxPrice !== undefined) {
     filter.pricePerNight = {};
     if (minPrice !== undefined) filter.pricePerNight.$gte = Number(minPrice);
     if (maxPrice !== undefined) filter.pricePerNight.$lte = Number(maxPrice);
   }
 
-  // фильтр isActive
   if (isActive !== undefined) {
     filter.isActive = isActive === "true";
   }
@@ -58,7 +54,7 @@ export const getRooms = async (req, res) => {
   return res.json(rooms);
 };
 
-export const getRoomById = async (req, res) => {
+exports.getRoomById = async (req, res) => {
   const { id } = req.params;
   if (!isValidObjectId(id)) return res.status(400).json({ error: "Invalid room id" });
 
@@ -68,7 +64,7 @@ export const getRoomById = async (req, res) => {
   return res.json(room);
 };
 
-export const updateRoomPut = async (req, res) => {
+exports.updateRoomPut = async (req, res) => {
   const { id } = req.params;
   const { hotelId, roomNumber, type, pricePerNight, amenities, isActive } = req.body;
 
@@ -85,41 +81,39 @@ export const updateRoomPut = async (req, res) => {
     id,
     { hotelId, roomNumber, type, pricePerNight, amenities, isActive },
     { new: true }
-  );
+  ).lean();
 
   if (!updated) return res.status(404).json({ error: "Room not found" });
   return res.json(updated);
 };
 
-export const updateRoomPatch = async (req, res) => {
+exports.updateRoomPatch = async (req, res) => {
   const { id } = req.params;
   if (!isValidObjectId(id)) return res.status(400).json({ error: "Invalid room id" });
 
-  // ограничиваем PATCH только контрактными полями
   const allowed = ["hotelId", "roomNumber", "type", "pricePerNight", "amenities", "isActive"];
   const $set = {};
   for (const k of allowed) {
     if (req.body[k] !== undefined) $set[k] = req.body[k];
   }
 
-  // если меняем hotelId — проверяем существование отеля
   if ($set.hotelId !== undefined) {
     if (!isValidObjectId($set.hotelId)) return res.status(400).json({ error: "Invalid hotelId" });
     const hotelExists = await Hotel.exists({ _id: $set.hotelId });
     if (!hotelExists) return res.status(400).json({ error: "Hotel not found for given hotelId" });
   }
 
-  const updated = await Room.findByIdAndUpdate(id, { $set }, { new: true });
+  const updated = await Room.findByIdAndUpdate(id, { $set }, { new: true }).lean();
   if (!updated) return res.status(404).json({ error: "Room not found" });
 
   return res.json(updated);
 };
 
-export const deleteRoom = async (req, res) => {
+exports.deleteRoom = async (req, res) => {
   const { id } = req.params;
   if (!isValidObjectId(id)) return res.status(400).json({ error: "Invalid room id" });
 
-  const deleted = await Room.findByIdAndDelete(id);
+  const deleted = await Room.findByIdAndDelete(id).lean();
   if (!deleted) return res.status(404).json({ error: "Room not found" });
 
   return res.status(204).send();

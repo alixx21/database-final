@@ -17,7 +17,6 @@ const roomSchema = new mongoose.Schema(
   { versionKey: false }
 );
 
-// index hotelId + pricePerNight
 roomSchema.index({ hotelId: 1, pricePerNight: 1 });
 
 module.exports = mongoose.model("Room", roomSchema);

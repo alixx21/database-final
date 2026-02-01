@@ -1,19 +1,24 @@
-import { Router } from "express";
-import {
+const express = require("express");
+const router = express.Router();
+const adminOnly = require("../middleware/adminOnly");
+
+const {
   createRoom,
   getRooms,
   getRoomById,
   updateRoomPut,
   updateRoomPatch,
   deleteRoom
-} from "../controllers/room.controller.js";
+} = require("../controllers/room.controller");
 
-const router = Router();
+// PUBLIC
+router.get("/", getRooms);
+router.get("/:id", getRoomById);
 
-router.post("/", createRoom);
-router.get("/", getRooms);            
-router.put("/:id", updateRoomPut);
-router.patch("/:id", updateRoomPatch);
-router.delete("/:id", deleteRoom);
+// ADMIN
+router.post("/", adminOnly, createRoom);
+router.put("/:id", adminOnly, updateRoomPut);
+router.patch("/:id", adminOnly, updateRoomPatch);
+router.delete("/:id", adminOnly, deleteRoom);
 
-export default router;
+module.exports = router;

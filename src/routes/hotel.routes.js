@@ -1,11 +1,24 @@
-const router = require("express").Router();
-const c = require("../controllers/hotel.controller");
+const express = require("express");
+const router = express.Router();
+const adminOnly = require("../middleware/adminOnly");
 
-router.post("/", c.createHotel);
-router.get("/", c.getHotels);
-router.get("/:id", c.getHotelById);
-router.put("/:id", c.updateHotelPut);
-router.patch("/:id", c.updateHotelPatch);
-router.delete("/:id", c.deleteHotel);
+const {
+  createHotel,
+  getHotels,
+  getHotelById,
+  updateHotelPut,
+  updateHotelPatch,
+  deleteHotel
+} = require("../controllers/hotel.controller");
+
+// PUBLIC
+router.get("/", getHotels);
+router.get("/:id", getHotelById);
+
+// ADMIN
+router.post("/", adminOnly, createHotel);
+router.put("/:id", adminOnly, updateHotelPut);
+router.patch("/:id", adminOnly, updateHotelPatch);
+router.delete("/:id", adminOnly, deleteHotel);
 
 module.exports = router;

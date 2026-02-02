@@ -12,12 +12,26 @@ exports.createHotel = async (req, res) => {
 };
 
 exports.getHotels = async (req, res) => {
-  const filter = {};
-  if (req.query.city) filter.city = req.query.city;
+  try {
+    const q = req.query.q || "";
+    const filter = q
+      ? {
+          $or: [
+            { city: { $regex: q, $options: "i" }},
+            { name: { $regex: q, $options: "i" }}
+          ]
+        }
+      : {};
 
-  const hotels = await Hotel.find(filter).lean();
-  return res.json(hotels);
+    const hotels = await Hotel.find(filter);
+    res.json(hotels);
+
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Server error" });
+  }
 };
+
 
 exports.getHotelById = async (req, res) => {
   if (!isValidId(req.params.id)) return res.status(400).json({ error: "Invalid hotel id" });

@@ -53,49 +53,42 @@ exports.register = async (req, res) => {
 // ========================
 // REGISTER ADMIN
 // ========================
-exports.registerAdmin = async (req, res) => {
+exports.adminLogin = async (req, res) => {
   try {
-    const { fullName, email, password, adminSecret } = req.body;
+    const { email, password, adminSecret } = req.body;
 
     if (!adminSecret || adminSecret !== process.env.ADMIN_SECRET) {
       return res.status(403).json({ message: "Invalid admin secret" });
     }
 
-    const exists = await User.findOne({ email });
-    if (exists) {
-      return res.status(400).json({ message: "Email already in use" });
+    const user = await User.findOne({ email });
+    if (!user || user.role !== "ADMIN") {
+      return res.status(403).json({ message: "Not an admin account" });
     }
 
-    const passwordHash = await hashPassword(password);
+    const match = await comparePassword(password, user.passwordHash);
+    if (!match) {
+      return res.status(400).json({ message: "Wrong password" });
+    }
 
-    const admin = await User.create({
-      fullName,
-      email,
-      passwordHash,
-      role: "ADMIN"
-    });
+    const token = jwt.sign({ id: user._id, role: "ADMIN" }, secret, { expiresIn });
 
-    const token = jwt.sign(
-      { id: admin._id, role: admin.role },
-      secret,
-      { expiresIn }
-    );
-
-    return res.status(201).json({
-      message: "Admin registered",
+    res.json({
+      message: "Admin login success",
       token,
       user: {
-        id: admin._id,
-        fullName: admin.fullName,
-        email: admin.email,
-        role: admin.role
+        id: user._id,
+        fullName: user.fullName,
+        role: user.role
       }
     });
+
   } catch (e) {
     console.error(e);
-    return res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error" });
   }
 };
+
 
 // ========================
 // LOGIN (USER + ADMIN)

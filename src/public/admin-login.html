@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Login</title>
+  <script src="./api.js"></script>
+</head>
+<body>
+  <h2>Admin Login</h2>
+
+  <input id="email" placeholder="Email" />
+  <input id="password" type="password" placeholder="Password" />
+  <input id="secret" placeholder="Admin secret" />
+
+  <button id="adminLoginBtn">Login as Admin</button>
+
+  <script>
+    document.getElementById("adminLoginBtn").onclick = async () => {
+      try {
+        const email = email.value;
+        const password = password.value;
+        const adminSecret = secret.value;
+
+        const res = await api("/auth/admin-login", {
+          method: "POST",
+          body: { email, password, adminSecret }
+        });
+
+        sessionStorage.setItem("token", res.token);
+        sessionStorage.setItem("role", "ADMIN");
+
+        location.href = "./admin-hotels.html";
+      } catch (e) {
+        showToast(e.message);
+      }
+    };
+  </script>
+</body>
+</html>

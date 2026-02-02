@@ -43,6 +43,23 @@ exports.createBooking = async (req, res) => {
   res.status(201).json(booking);
 };
 
+exports.getMyBookings = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const bookings = await Booking.find({ userId })
+      .populate({
+        path: "roomId",
+        populate: { path: "hotelId" }
+      })
+      .sort({ createdAt: -1 });
+
+    res.json(bookings);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
 /**
  * CANCEL BOOKING
@@ -51,7 +68,7 @@ exports.cancelBooking = async (req, res) => {
   const booking = await Booking.findOneAndUpdate(
     {
       _id: req.params.id,
-      userId: req.user.userId || req.user.id,
+      userId: req.user.id,
       status: { $ne: 'CANCELED' }
     },
     {

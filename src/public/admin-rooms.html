@@ -9,13 +9,19 @@
 <body>
 <div class="container">
   <div class="topbar">
-    <div class="nav">
-      <a class="badge" href="./index.html">Hotels</a>
-      <a class="badge" href="./admin-hotels.html">Admin Hotels</a>
-      <a class="badge" href="./admin-rooms.html">Admin Rooms</a>
-    </div>
+   <div class="nav">
+  <a class="badge" href="./index.html">Hotels</a>
+
+  <a class="badge" href="./admin-hotels.html" class="nav-admin">Admin Hotels</a>
+  <a class="badge" href="./admin-rooms.html" class="nav-admin">Admin Rooms</a>
+
+  <a class="badge" href="./my-bookings.html" class="nav-user">My bookings</a>
+
+  <button class="nav-logout" style="display:none;">Logout</button>
+</div>
+
     <span class="small">Admin</span>
-  </div>
+  </div>  
 
   <div class="grid2">
     <div class="card">
@@ -62,7 +68,6 @@
 
 <script src="./api.js"></script>
 <script>
-  
 const token = sessionStorage.getItem("token");
 if (!token) location.href = "./index.html";
 
@@ -75,17 +80,28 @@ if (payload.role !== "ADMIN") {
 const $ = (id) => document.getElementById(id);
 let editingId = null;
 
-function showError(msg){ $("error").innerHTML = msg ? `<div class="alert">${msg}</div>` : ""; }
-function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]))}
+function showError(msg) {
+  $("error").innerHTML = msg ? `<div class="alert">${msg}</div>` : "";
+}
 
-function parseAmenities(text){
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (m) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  }[m]));
+}
+
+function parseAmenities(text) {
   return (text || "")
     .split(",")
-    .map(s => s.trim())
+    .map((s) => s.trim())
     .filter(Boolean);
 }
 
-function payload(){
+function formPayload() {
   return {
     hotelId: $("hotelId").value,
     roomNumber: $("roomNumber").value.trim(),
@@ -96,7 +112,7 @@ function payload(){
   };
 }
 
-function fillForm(r){
+function fillForm(r) {
   $("hotelId").value = r.hotelId || "";
   $("roomNumber").value = r.roomNumber || "";
   $("type").value = r.type || "";
@@ -105,45 +121,57 @@ function fillForm(r){
   $("isActive").checked = !!r.isActive;
 }
 
-function resetForm(){
+function resetForm() {
   editingId = null;
   $("formTitle").textContent = "Add room";
   $("btnCancel").style.display = "none";
-  fillForm({hotelId:"",roomNumber:"",type:"",pricePerNight:0,amenities:[],isActive:true});
+  fillForm({ hotelId: "", roomNumber: "", type: "", pricePerNight: 0, amenities: [], isActive: true });
 }
 
-async function loadHotelsForSelects(){
+async function loadHotelsForSelects() {
   const hotels = await api("/api/hotels");
-  const options = (hotels||[]).map(h => `<option value="${h._id}">${escapeHtml(h.name)} (${escapeHtml(h.city)})</option>`).join("");
+  const options = (hotels || [])
+    .map((h) => `<option value="${h._id}">${escapeHtml(h.name)} (${escapeHtml(h.city)})</option>`)
+    .join("");
 
   $("hotelId").innerHTML = `<option value="">Select hotel (required)</option>` + options;
   $("filterHotel").innerHTML = `<option value="">All hotels</option>` + options;
 }
 
-async function loadRooms(){
+async function loadRooms() {
   showError("");
   $("status").textContent = "Loading...";
-  const hotelId = $("filterHotel").value || undefined;
 
+  const hotelId = $("filterHotel").value || undefined;
   const rooms = await api("/api/rooms" + qs({ hotelId }));
-  $("list").innerHTML = (rooms||[]).map(r => `
+
+  $("list").innerHTML =
+    (rooms || [])
+      .map(
+        (r) => `
     <div class="card item">
       <div>
         <h3>Room ${escapeHtml(r.roomNumber)} • ${escapeHtml(r.type)}</h3>
         <div class="meta">$${r.pricePerNight}/night • ${r.isActive ? "Active" : "Inactive"}</div>
-        <div class="pills">${(r.amenities||[]).map(a => `<span class="pill">${escapeHtml(a)}</span>`).join("")}</div>
+        <div class="pills">${(r.amenities || [])
+          .map((a) => `<span class="pill">${escapeHtml(a)}</span>`)
+          .join("")}</div>
         <div class="small">hotelId: <code>${escapeHtml(r.hotelId)}</code></div>
         <div class="small">id: <code>${escapeHtml(r._id)}</code></div>
       </div>
       <div class="row">
-        <button class="secondary" onclick='edit(${JSON.stringify(r).replace(/'/g,"&#039;")})'>Edit</button>
-        <button class="secondary" onclick='toggle("${r._id}", ${!!r.isActive})'>${r.isActive ? "Disable" : "Enable"}</button>
+        <button class="secondary" onclick='edit(${JSON.stringify(r).replace(/'/g, "&#039;")})'>Edit</button>
+        <button class="secondary" onclick='toggle("${r._id}", ${!!r.isActive})'>
+            ${r.isActive ? "Disable" : "Enable"}
+        </button>
         <button class="danger" onclick='del("${r._id}")'>Delete</button>
       </div>
     </div>
-  `).join("") || `<div class="small">No rooms.</div>`;
+    `
+      )
+      .join("") || `<div class="small">No rooms.</div>`;
 
-  $("status").textContent = `${(rooms||[]).length} rooms`;
+  $("status").textContent = `${(rooms || []).length} rooms`;
 }
 
 window.edit = (r) => {
@@ -155,21 +183,25 @@ window.edit = (r) => {
 
 window.toggle = async (id, current) => {
   try {
-    await api("/api/rooms/" + encodeURIComponent(id), { method:"PATCH", body:{ isActive: !current }});
+    await api("/api/rooms/" + encodeURIComponent(id), {
+      method: "PATCH",
+      body: { isActive: !current }
+    });
     await loadRooms();
-    if (editingId === id) {
-      // refresh edit form by reloading single is not needed; keep simple
-    }
-  } catch(e){ showError(e.message); }
+  } catch (e) {
+    showError(e.message);
+  }
 };
 
 window.del = async (id) => {
   if (!confirm("Delete room?")) return;
   try {
-    await api("/api/rooms/" + encodeURIComponent(id), { method:"DELETE" });
+    await api("/api/rooms/" + encodeURIComponent(id), { method: "DELETE" });
     await loadRooms();
     if (editingId === id) resetForm();
-  } catch(e){ showError(e.message); }
+  } catch (e) {
+    showError(e.message);
+  }
 };
 
 $("btnCancel").onclick = resetForm;
@@ -178,71 +210,33 @@ $("btnFilter").onclick = loadRooms;
 $("form").onsubmit = async (e) => {
   e.preventDefault();
   showError("");
+
   try {
-    const body = payload();
-    if (!body.hotelId || !body.roomNumber || !body.type || body.pricePerNight === undefined) {
-      throw new Error("hotelId, roomNumber, type, pricePerNight required");
+    const body = formPayload();
+
+    if (!body.hotelId || !body.roomNumber || !body.type) {
+      throw new Error("Fill all required fields");
     }
 
     if (editingId) {
-      await api("/api/rooms/" + encodeURIComponent(editingId), { method:"PUT", body });
+      await api("/api/rooms/" + encodeURIComponent(editingId), {
+        method: "PUT",
+        body
+      });
     } else {
-      await api("/api/rooms", { method:"POST", body });
+      await api("/api/rooms", { method: "POST", body });
     }
 
     resetForm();
     await loadRooms();
-  } catch(e){
+
+  } catch (e) {
     showError(e.message);
   }
 };
 
-(async function init(){
+(async function init() {
   await loadHotelsForSelects();
   await loadRooms();
 })();
-document.getElementById("saveRoomBtn").onclick = async () => {
-  try {
-    const hotelId = document.getElementById("hotelSelect").value;
-    const roomNumber = document.getElementById("roomNumber").value.trim();
-    const type = document.getElementById("roomType").value;
-    const pricePerNight = Number(document.getElementById("price").value);
-    const amenitiesRaw = document.getElementById("amenities").value;
-    const isActive = document.getElementById("isActive").checked;
-
-    if (!hotelId) {
-      showToast("Please select hotel");
-      return;
-    }
-    if (!roomNumber || !type || !pricePerNight) {
-      showToast("Fill all required fields");
-      return;
-    }
-
-    const amenities = amenitiesRaw
-      ? amenitiesRaw.split(",").map(a => a.trim()).filter(Boolean)
-      : [];
-
-    await api("/api/rooms", {
-      method: "POST",
-      body: {
-        hotelId,
-        roomNumber,
-        type,
-        pricePerNight,
-        amenities,
-        isActive
-      }
-    });
-
-    showToast("Room added successfully", "success");
-    loadRooms();
-  } catch (e) {
-    showToast(e.message);
-  }
-};
-
-
 </script>
-</body>
-</html>

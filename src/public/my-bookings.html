@@ -8,41 +8,97 @@
 <body>
 <div class="container">
   <h1>My bookings</h1>
+  <div class="topbar">
+   <div class="nav">
+  <a class="badge" href="./index.html">Hotels</a>
+
+  <a class="badge" href="./admin-hotels.html" class="nav-admin">Admin Hotels</a>
+  <a class="badge" href="./admin-rooms.html" class="nav-admin">Admin Rooms</a>
+
+  <a class="badge" href="./my-bookings.html" class="nav-user">My bookings</a>
+
+  <button class="nav-logout" style="display:none;">Logout</button>
+</div>
+
+
   <div id="list"></div>
 </div>
 
+<script src="./api.js"></script>
 <script>
-    const t = sessionStorage.getItem("token");
-if (!t) location.href = "./index.html";
-
-const API = "http://localhost:3000";
+const API = "http://localhost:3000/api";
 const token = sessionStorage.getItem("token");
+
+function parseJwt(token) {
+  try { return JSON.parse(atob(token.split(".")[1])); }
+  catch(e){ return null; }
+}
+
+function logout(){
+  sessionStorage.removeItem("token");
+  location.href = "./index.html";
+}
 
 if (!token) location.href = "./index.html";
 
-fetch(API + "/bookings/my", {
-  headers: { Authorization: "Bearer " + token }
-})
-.then(r => r.json())
-.then(data => {
-  const el = document.getElementById("list");
-  if (!data.length) {
-    el.innerHTML = "<p>No bookings</p>";
-    return;
+document.addEventListener("DOMContentLoaded", async () => {
+  // role-based UI (optional)
+  const payload = parseJwt(token);
+  const role = payload?.role;
+
+  const logoutBtn = document.querySelector(".nav-logout");
+  if (logoutBtn) {
+    logoutBtn.style.display = "inline-block";
+    logoutBtn.onclick = logout;
   }
 
-  el.innerHTML = data.map(b => `
-    <div class="card">
-      <div>Room: ${b.roomId}</div>
-      <div>Status: ${b.status}</div>
-      <div>
-        ${new Date(b.checkIn).toDateString()} →
-        ${new Date(b.checkOut).toDateString()}
-      </div>
-      <div>Total: ${b.totalPrice}</div>
-    </div>
-  `).join("");
+  // если не админ — можно скрыть админ ссылки
+  if (role !== "ADMIN") {
+    document.querySelectorAll(".nav-admin").forEach(a => a.style.display = "none");
+  }
+
+  try {
+    const res = await fetch(API + "/bookings/my", {
+      headers: { Authorization: "Bearer " + token }
+    });
+
+    const data = await res.json();
+    const el = document.getElementById("list");
+
+    if (!res.ok) {
+      el.innerHTML = "<p>Error: " + (data.message || data.error || "Request failed") + "</p>";
+      return;
+    }
+
+    if (!Array.isArray(data) || data.length === 0) {
+      el.innerHTML = "<p>No bookings yet</p>";
+      return;
+    }
+
+    el.innerHTML = data.map((b) => {
+      const room = b.roomId || {};
+      const hotel = room.hotelId || {};
+
+      const inD = b.checkIn ? new Date(b.checkIn).toDateString() : "-";
+      const outD = b.checkOut ? new Date(b.checkOut).toDateString() : "-";
+
+      return `
+        <div class="card">
+          <h3>${hotel.name || "Hotel"} (${hotel.city || "-"})</h3>
+
+          <div class="meta">
+            Room: ${room.roomNumber || "-"} (${room.type || "-"})
+          </div>
+
+          <div><b>Dates:</b> ${inD} → ${outD}</div>
+          <div><b>Status:</b> ${b.status || "-"}</div>
+          <div><b>Total:</b> $${b.totalPrice ?? 0}</div>
+        </div>
+      `;
+    }).join("");
+  } catch (err) {
+    console.error(err);
+    document.getElementById("list").innerHTML = "<p>Error loading bookings</p>";
+  }
 });
 </script>
-</body>
-</html>

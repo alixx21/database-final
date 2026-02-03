@@ -13,11 +13,9 @@ const {
   deleteRoom
 } = require("../controllers/room.controller");
 
-// PUBLIC
 router.get("/", getRooms);
 router.get("/:id", getRoomById);
 
-// ADMIN
 router.post("/", auth, roleOnly("admin"), createRoom);
 router.put("/:id", auth, roleOnly("admin"), updateRoomPut);
 router.patch("/:id", auth, roleOnly("admin"), updateRoomPatch);

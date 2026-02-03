@@ -3,9 +3,7 @@ const User = require("../models/user.model");
 const { hashPassword, comparePassword } = require("../utils/password");
 const { secret, expiresIn } = require("../config/jwt");
 
-// ========================
-// REGISTER (USER)
-// ========================
+
 exports.register = async (req, res) => {
   try {
     const { fullName, email, password } = req.body;
@@ -50,9 +48,6 @@ exports.register = async (req, res) => {
   }
 };
 
-// ========================
-// REGISTER ADMIN
-// ========================
 exports.adminLogin = async (req, res) => {
   try {
     const { email, password, adminSecret } = req.body;
@@ -88,11 +83,51 @@ exports.adminLogin = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+exports.registerAdmin = async (req, res) => {
+  try {
+    const { fullName, email, password, adminSecret } = req.body;
+
+    if (!adminSecret || adminSecret !== process.env.ADMIN_SECRET) {
+      return res.status(403).json({ message: "Invalid admin secret" });
+    }
+
+    const exists = await User.findOne({ email });
+    if (exists) {
+      return res.status(400).json({ message: "Email already in use" });
+    }
+
+    const passwordHash = await hashPassword(password);
+
+    const admin = await User.create({
+      fullName,
+      email,
+      passwordHash,
+      role: "ADMIN"
+    });
+
+    const token = jwt.sign(
+      { id: admin._id, role: admin.role },
+      secret,
+      { expiresIn }
+    );
+
+    return res.status(201).json({
+      message: "Admin registered",
+      token,
+      user: {
+        id: admin._id,
+        fullName: admin.fullName,
+        email: admin.email,
+        role: admin.role
+      }
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
 
 
-// ========================
-// LOGIN (USER + ADMIN)
-// ========================
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;

@@ -1,9 +1,6 @@
 const Booking = require('../models/booking.model');
 const Room = require('../models/room.model');
 
-/**
- * CREATE BOOKING
- */
 exports.createBooking = async (req, res) => {
   const userId = req.user.id;
   const { roomId } = req.body;
@@ -61,9 +58,6 @@ exports.getMyBookings = async (req, res) => {
   }
 };
 
-/**
- * CANCEL BOOKING
- */
 exports.cancelBooking = async (req, res) => {
   const booking = await Booking.findOneAndUpdate(
     {
@@ -90,9 +84,7 @@ exports.cancelBooking = async (req, res) => {
   res.json(booking);
 };
 
-/**
- * CONFIRM BOOKING (admin / payment success)
- */
+
 exports.confirmBooking = async (req, res) => {
   const booking = await Booking.findOneAndUpdate(
     {
@@ -118,9 +110,7 @@ exports.confirmBooking = async (req, res) => {
   res.json(booking);
 };
 
-/**
- * CHECK AVAILABILITY
- */
+
 exports.checkAvailability = async (req, res) => {
   const { roomId, checkIn, checkOut } = req.query;
 

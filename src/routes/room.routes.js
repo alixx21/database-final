@@ -16,10 +16,9 @@ const {
 router.get("/", getRooms);
 router.get("/:id", getRoomById);
 
-router.post("/", auth, roleOnly("admin"), createRoom);
-router.put("/:id", auth, roleOnly("admin"), updateRoomPut);
-router.patch("/:id", auth, roleOnly("admin"), updateRoomPatch);
-router.delete("/:id", auth, roleOnly("admin"), deleteRoom);
+router.post("/", auth, roleOnly("ADMIN"), createRoom);
+router.put("/:id", auth, roleOnly("ADMIN"), updateRoomPut);
+router.patch("/:id", auth, roleOnly("ADMIN"), updateRoomPatch);
+router.delete("/:id", auth, roleOnly("ADMIN"), deleteRoom);
 
-module.exports = router;
 module.exports = router;

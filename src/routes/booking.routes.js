@@ -15,4 +15,7 @@ router.put('/:id/confirm', auth, role('ADMIN'), bookingController.confirmBooking
 // check availability (public)
 router.get('/availability', bookingController.checkAvailability);
 
+router.get('/my', auth, role('USER'), bookingController.getMyBookings);
+
+
 module.exports = router;

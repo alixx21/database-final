@@ -229,3 +229,47 @@ button.danger{
 .toast.hidden{
   display:none;
 }
+
+/* Контейнер списка */
+#list {
+  margin-top: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 1000px;          /* ограничили ширину */
+  margin-left: auto;
+  margin-right: auto;        /* центрируем */
+}
+
+/* Карточка бронирования */
+.booking-card {
+  background: rgba(17, 26, 46, 0.95);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+
+/* Ховер для красоты */
+.booking-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.35);
+}
+
+/* Заголовок отеля */
+.booking-card h3 {
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+
+/* Текст */
+.booking-card .meta,
+.booking-card div {
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.booking-card b {
+  color: #fff;
+}

@@ -10,10 +10,16 @@
 <div class="container">
   <div class="topbar">
     <div class="nav">
-      <a class="badge" href="./index.html">Hotels</a>
-      <a class="badge" href="./admin-hotels.html">Admin Hotels</a>
-      <a class="badge" href="./admin-rooms.html">Admin Rooms</a>
-    </div>
+  <a class="badge" href="./index.html">Hotels</a>
+
+  <a class="badge" href="./admin-hotels.html" class="nav-admin">Admin Hotels</a>
+  <a class="badge" href="./admin-rooms.html" class="nav-admin">Admin Rooms</a>
+
+  <a class="badge" href="./my-bookings.html" class="nav-user">My bookings</a>
+
+
+  <button class="nav-logout" style="display:none;">Logout</button>
+</div>
     <span class="small" id="hotelName"></span>
   </div>
 
@@ -54,7 +60,7 @@ if (!hotelId) {
 }
 async function bookRoom(roomId) {
   try {
-    await api("/bookings", {
+    await api("/api/bookings", {
       method: "POST",
       body: { roomId }
     });

@@ -1,43 +1,75 @@
 const Booking = require('../models/booking.model');
 const Room = require('../models/room.model');
 
+function parseDate(value) {
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function diffNights(checkIn, checkOut) {
+  const ms = checkOut - checkIn;
+  const nights = Math.ceil(ms / (24 * 60 * 60 * 1000));
+  return nights;
+}
+
 exports.createBooking = async (req, res) => {
-  const userId = req.user.id;
-  const { roomId } = req.body;
+  try {
+    const userId = req.user.id;
+    const { roomId, checkIn, checkOut } = req.body;
 
-  if (!roomId) {
-    return res.status(400).json({ error: "roomId is required" });
+    if (!roomId) {
+      return res.status(400).json({ error: "roomId is required" });
+    }
+
+    let inDate = parseDate(checkIn);
+    let outDate = parseDate(checkOut);
+
+    if (!inDate || !outDate) {
+      inDate = new Date();
+      outDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+    }
+
+
+    const room = await Room.findById(roomId);
+    if (!room) {
+      return res.status(404).json({ error: "Room not found" });
+    }
+
+    // ✅ ВАЖНО: конфликт по датам, а не просто "есть любая бронь"
+    const conflict = await Booking.findOne({
+      roomId,
+      status: { $in: ["PENDING", "CONFIRMED"] },
+      checkIn: { $lt: outDate },
+      checkOut: { $gt: inDate }
+    });
+
+    if (conflict) {
+      return res.status(400).json({ error: "Room is not available for selected dates" });
+    }
+
+    const nights = diffNights(inDate, outDate);
+    if (nights <= 0) {
+      return res.status(400).json({ error: "Invalid nights count" });
+    }
+
+    const booking = await Booking.create({
+      userId,
+      roomId,
+      checkIn: inDate,
+      checkOut: outDate,
+      totalPrice: room.pricePerNight * nights,
+
+      // ✅ Сценарий B: создаём PENDING, подтверждаем отдельно
+      status: "PENDING",
+      statusHistory: [{ status: "PENDING", changedAt: new Date() }],
+      createdAt: new Date()
+    });
+
+    res.status(201).json(booking);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Server error" });
   }
-
-  const room = await Room.findById(roomId);
-  if (!room) {
-    return res.status(404).json({ error: "Room not found" });
-  }
-
-  const exists = await Booking.findOne({
-    roomId,
-    status: { $in: ["PENDING", "CONFIRMED"] }
-  });
-
-  if (exists) {
-    return res.status(400).json({ error: "Room already booked" });
-  }
-
-  const checkIn = new Date();
-  const checkOut = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
-
-  const booking = await Booking.create({
-    userId,
-    roomId,
-    checkIn,
-    checkOut,
-    totalPrice: room.pricePerNight * 3,
-    status: "CONFIRMED",
-    statusHistory: [{ status: "CONFIRMED", changedAt: new Date() }],
-    createdAt: new Date()
-  });
-
-  res.status(201).json(booking);
 };
 
 exports.getMyBookings = async (req, res) => {
@@ -59,71 +91,75 @@ exports.getMyBookings = async (req, res) => {
 };
 
 exports.cancelBooking = async (req, res) => {
-  const booking = await Booking.findOneAndUpdate(
-    {
-      _id: req.params.id,
-      userId: req.user.id,
-      status: { $ne: 'CANCELED' }
-    },
-    {
-      $set: { status: 'CANCELED' },
-      $push: {
-        statusHistory: {
-          status: 'CANCELED',
-          changedAt: new Date()
+  try {
+    const booking = await Booking.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        userId: req.user.id,
+        status: { $ne: "CANCELED" }
+      },
+      {
+        $set: { status: "CANCELED" },
+        $push: {
+          statusHistory: { status: "CANCELED", changedAt: new Date() }
         }
-      }
-    },
-    { new: true }
-  );
+      },
+      { new: true }
+    );
 
-  if (!booking) {
-    return res.status(404).json({ message: 'Booking not found or forbidden' });
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found or forbidden" });
+    }
+
+    res.json(booking);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Server error" });
   }
-
-  res.json(booking);
 };
-
 
 exports.confirmBooking = async (req, res) => {
-  const booking = await Booking.findOneAndUpdate(
-    {
-      _id: req.params.id,
-      status: 'PENDING'
-    },
-    {
-      $set: { status: 'CONFIRMED' },
-      $push: {
-        statusHistory: {
-          status: 'CONFIRMED',
-          changedAt: new Date()
+  try {
+    const booking = await Booking.findOneAndUpdate(
+      { _id: req.params.id, status: "PENDING" },
+      {
+        $set: { status: "CONFIRMED" },
+        $push: {
+          statusHistory: { status: "CONFIRMED", changedAt: new Date() }
         }
-      }
-    },
-    { new: true }
-  );
+      },
+      { new: true }
+    );
 
-  if (!booking) {
-    return res.status(400).json({ message: 'Invalid booking state' });
+    if (!booking) {
+      return res.status(400).json({ message: "Invalid booking state" });
+    }
+
+    res.json(booking);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Server error" });
   }
-
-  res.json(booking);
 };
 
-
 exports.checkAvailability = async (req, res) => {
-  const { roomId, checkIn, checkOut } = req.query;
+  try {
+    const { roomId, checkIn, checkOut } = req.query;
 
-  if (!roomId || !checkIn || !checkOut) {
-    return res.status(400).json({ message: 'roomId, checkIn, checkOut required' });
+    if (!roomId || !checkIn || !checkOut) {
+      return res.status(400).json({ message: "roomId, checkIn, checkOut required" });
+    }
+
+    const conflict = await Booking.findOne({
+      roomId,
+      status: { $ne: "CANCELED" },
+      checkIn: { $lt: new Date(checkOut) },
+      checkOut: { $gt: new Date(checkIn) }
+    });
+
+    res.json({ available: !conflict });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Server error" });
   }
-
-  const conflict = await Booking.findOne({
-    roomId,
-    status: { $ne: 'CANCELED' },
-    checkIn: { $lt: new Date(checkOut) },
-    checkOut: { $gt: new Date(checkIn) }
-  });
-
-  res.json({ available: !conflict });
 };

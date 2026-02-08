@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Hotels — DELUX</title>
+  <link rel="stylesheet" href="./styles.css"/>
+
+</head>
+
+<body>
+
+  <header class="navbar">
+  <div class="navbar-inner">
+    <div class="nav-left">
+<a class="badge nav-admin" href="./admin-hotels.html">Admin Hotels</a>
+<a class="badge nav-admin" href="./admin-rooms.html">Admin Rooms</a>
+<a class="badge nav-user"  href="./my-bookings.html">My bookings</a>
+
+<a class="badge nav-guest" href="./login.html">Login</a>
+<a class="badge nav-guest" href="./register.html">Register</a>
+
+<button class="badge nav-logout" style="display:none;">Logout</button>
+
+    </div>
+
+   <div class="brand">
+  <img class="brand-logo" src="./images/delux_l.png" alt="Delux Hotels">
+</div>
+
+    <div class="nav-right">
+      <a class="nav-link" id="navMy" href="./my-bookings.html" style="display:none;">My bookings</a>
+      <a class="nav-link" id="navAdminHotels" href="./admin-hotels.html" style="display:none;">Admin hotels</a>
+      <a class="nav-link" id="navAdminRooms" href="./admin-rooms.html" style="display:none;">Admin rooms</a>
+
+      <button class="icon-btn" id="btnLogout" style="display:none;" title="Logout">⎋</button>
+    </div>
+  </div>
+</header>
+
+  <main class="page">
+    <div class="page-head">
+      <h1>Our Hotels</h1>
+      <p>Swipe through destinations — the description changes with each hotel.</p>
+    </div>
+
+    <section class="carousel" aria-label="Hotels carousel">
+      <div class="carousel-stage" id="stage">
+
+        <!-- SLIDES (each links to hotel.html with hotelId) -->
+        <div class="slide active" data-index="0" data-hotelid="h1">
+          <a href="./hotel.html?hotelId=h1">
+            <img src="./images/astana.JPG" alt="Delux Resort Antalya">
+          </a>
+        </div>
+
+        <div class="slide" data-index="1" data-hotelid="h2">
+          <a href="./hotel.html?hotelId=h2">
+            <img src="./images/almaty.JPG" alt="Delux Palm Dubai">
+          </a>
+        </div>
+
+        <div class="slide" data-index="2" data-hotelid="h3">
+          <a href="./hotel.html?hotelId=h3">
+            <img src="./images/aktau.JPG" alt="Delux Marina Bodrum">
+          </a>
+        </div>
+
+        <div class="slide" data-index="3" data-hotelid="h4">
+          <a href="./hotel.html?hotelId=h4">
+            <img src="./images/shymkent.JPG" alt="Delux Hills Bali">
+          </a>
+        </div>
+
+        <div class="slide" data-index="4" data-hotelid="h5">
+          <a href="./hotel.html?hotelId=h5">
+            <img src="./images/oskemen.JPG" alt="Delux City Istanbul">
+          </a>
+        </div>
+
+        <div class="slide" data-index="5" data-hotelid="h6">
+          <a href="./hotel.html?hotelId=h6">
+            <img src="./images/oral.JPG" alt="Delux Snow Almaty">
+          </a>
+        </div>
+
+        <!-- controls -->
+        <div class="car-btn car-prev" id="prevBtn" aria-label="Previous">‹</div>
+        <div class="car-btn car-next" id="nextBtn" aria-label="Next">›</div>
+
+        <!-- dots -->
+        <div class="dots" id="dots" aria-label="Slide indicators"></div>
+
+      </div>
+
+      <!-- INFO BELOW (auto changes) -->
+      <div class="hotel-info">
+        <h2 class="hotel-title" id="hTitle">—</h2>
+        <div class="hotel-meta" id="hMeta">—</div>
+        <div class="hotel-desc" id="hDesc">—</div>
+
+        <div class="hotel-actions">
+          <div class="left">
+            <a class="btn-pill primary" id="viewBtn" href="./hotel.html">View hotel</a>
+            <a class="btn-pill" id="roomsBtn" href="./hotel.html">See rooms</a>
+          </div>
+          <div class="small-note" id="hNote">Click the photo to open the hotel page.</div>
+        </div>
+      </div>
+
+      <!-- thumbnails -->
+      <div class="thumbs" id="thumbs"></div>
+    </section>
+  </main>
+
+  <script>
+    // ====== DATA (easy to expand) ======
+    const HOTELS = [
+      {
+        id: "h1",
+        title: "Delux Resort Antalya",
+        city: "Antalya, Turkey",
+        desc: "All-inclusive seaside resort with private beach access, spacious suites, and sunset dining.",
+        note: "Best for: family vacations • beach • all-inclusive"
+      },
+      {
+        id: "h2",
+        title: "Delux Palm Dubai",
+        city: "Dubai, UAE",
+        desc: "A modern luxury escape on the coast with skyline views, premium rooms, and signature service.",
+        note: "Best for: city luxury • shopping • sea view"
+      },
+      {
+        id: "h3",
+        title: "Delux Marina Bodrum",
+        city: "Bodrum, Turkey",
+        desc: "Boutique marina vibes, elegant interiors, and easy access to boat trips and nightlife.",
+        note: "Best for: couples • marina • nightlife"
+      },
+      {
+        id: "h4",
+        title: "Delux Hills Bali",
+        city: "Bali, Indonesia",
+        desc: "Peaceful hilltop retreat surrounded by nature, spa rituals, and panoramic pool views.",
+        note: "Best for: relax • spa • nature"
+      },
+      {
+        id: "h5",
+        title: "Delux City Istanbul",
+        city: "Istanbul, Turkey",
+        desc: "Classic city hotel in a prime location — perfect for exploring landmarks and business stays.",
+        note: "Best for: city trips • culture • business"
+      },
+      {
+        id: "h6",
+        title: "Delux Snow Almaty",
+        city: "Almaty, Kazakhstan",
+        desc: "Mountain-inspired comfort close to winter activities, with warm interiors and scenic views.",
+        note: "Best for: winter • mountains • cozy stay"
+      }
+    ];
+
+    const slides = Array.from(document.querySelectorAll(".slide"));
+    const dotsEl = document.getElementById("dots");
+    const thumbsEl = document.getElementById("thumbs");
+
+    const titleEl = document.getElementById("hTitle");
+    const metaEl = document.getElementById("hMeta");
+    const descEl = document.getElementById("hDesc");
+    const noteEl = document.getElementById("hNote");
+
+    const viewBtn = document.getElementById("viewBtn");
+    const roomsBtn = document.getElementById("roomsBtn");
+
+    let index = 0;
+    let timer = null;
+
+    function setActive(i){
+      index = (i + slides.length) % slides.length;
+
+      slides.forEach((s, k) => s.classList.toggle("active", k === index));
+
+      // dots
+      Array.from(dotsEl.children).forEach((d, k) => d.classList.toggle("active", k === index));
+
+      // thumbs
+      Array.from(thumbsEl.children).forEach((t, k) => t.classList.toggle("active", k === index));
+
+      // update info
+      const hid = slides[index].dataset.hotelid;
+      const h = HOTELS.find(x => x.id === hid) || HOTELS[index];
+
+      titleEl.textContent = h?.title || "Hotel";
+      metaEl.textContent  = h?.city || "";
+      descEl.textContent  = h?.desc || "";
+      noteEl.textContent  = h?.note || "Click the photo to open the hotel page.";
+
+      // update links
+      const link = "./hotel.html?hotelId=" + encodeURIComponent(hid);
+      viewBtn.href = link;
+      roomsBtn.href = link; // потом можно сделать rooms.html?hotelId=...
+    }
+
+    function next(){ setActive(index + 1); }
+    function prev(){ setActive(index - 1); }
+
+    function buildDots(){
+      dotsEl.innerHTML = "";
+      slides.forEach((_, i) => {
+        const d = document.createElement("div");
+        d.className = "dot" + (i === index ? " active" : "");
+        d.onclick = () => { setActive(i); restartAuto(); };
+        dotsEl.appendChild(d);
+      });
+    }
+
+    function buildThumbs(){
+      thumbsEl.innerHTML = "";
+      slides.forEach((s, i) => {
+        const img = s.querySelector("img");
+        const t = document.createElement("div");
+        t.className = "thumb" + (i === index ? " active" : "");
+        t.innerHTML = `<img src="${img.getAttribute("src")}" alt="thumb">`;
+        t.onclick = () => { setActive(i); restartAuto(); };
+        thumbsEl.appendChild(t);
+      });
+    }
+
+    // auto play
+    function startAuto(){
+      stopAuto();
+      timer = setInterval(next, 4500);
+    }
+    function stopAuto(){
+      if (timer) clearInterval(timer);
+      timer = null;
+    }
+    function restartAuto(){
+      startAuto();
+    }
+
+    // buttons
+    document.getElementById("nextBtn").onclick = () => { next(); restartAuto(); };
+    document.getElementById("prevBtn").onclick = () => { prev(); restartAuto(); };
+
+    // keyboard
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowRight") { next(); restartAuto(); }
+      if (e.key === "ArrowLeft")  { prev(); restartAuto(); }
+    });
+
+    // init
+    buildDots();
+    buildThumbs();
+    setActive(0);
+    startAuto();
+
+    // pause on hover
+    const stage = document.getElementById("stage");
+    stage.addEventListener("mouseenter", stopAuto);
+    stage.addEventListener("mouseleave", startAuto);
+  </script>
+</body>
+</html>

@@ -1,68 +1,91 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="ru">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Register</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="./styles.css"/>
 </head>
-
 <body>
-  <div class="container">
-    <h1 class="h">Регистрация</h1>
 
-    <div class="card">
-      <div class="row">
-        <input id="fullName" type="text" placeholder="Полное имя" />
-      </div>
+<div class="container">
+  <div class="topbar">
+    <div class="nav">
+      <a class="badge" href="./index.html">Hotels</a>
+      <a class="badge nav-user" href="./my-bookings.html" style="display:none;">My bookings</a>
 
-      <div class="row">
-        <input id="email" type="email" placeholder="Email" />
-      </div>
+      <a class="badge nav-guest" href="./login.html">Login</a>
+      <a class="badge nav-guest" href="./register.html">Register</a>
 
-      <div class="row">
-        <input id="password" type="password" placeholder="Пароль" />
-      </div>
-
-      <!-- Только админ будет вводить секрет -->
-      <div class="row">
-        <input id="adminSecret" type="text" placeholder="Admin Secret (если админ)" />
-      </div>
-
-      <button onclick="register()">Зарегистрироваться</button>
-
-      <div id="result" class="small" style="margin-top:10px;"></div>
+      <button class="badge nav-logout" style="display:none;">Logout</button>
     </div>
+    <span class="small">Account</span>
   </div>
 
+  <div class="card">
+    <h1 class="h">Registration</h1>
+    <div id="error"></div>
+
+    <form id="form" class="grid">
+      <input id="fullName" type="text" placeholder="Full name" required/>
+      <input id="email" type="email" placeholder="Email" required/>
+      <input id="password" type="password" placeholder="Password (min 6)" minlength="6" required/>
+
+      <div class="row">
+        <button type="submit">Create account</button>
+        <a class="badge" href="./login.html">I already have an account</a>
+      </div>
+
+      <div class="small" id="status"></div>
+    </form>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="./api.js"></script>
+<script src="./nav-auth.js"></script>
+<script src="./api.js"></script>
 <script>
 async function register() {
-  const fullName = document.getElementById("fullName").value;
-  const email = document.getElementById("email").value;
+  const fullName = document.getElementById("fullName").value.trim();
+  const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value;
-  const adminSecret = document.getElementById("adminSecret").value;
+  const adminSecret = document.getElementById("adminSecret").value.trim();
 
-  const isAdmin = adminSecret.trim() !== "";
+  const result = document.getElementById("result");
+  result.innerText = "";
 
-  const url = isAdmin
-    ? "/api/auth/register-admin"
-    : "/api/auth/register";
+  try {
+    if (!fullName || !email || !password) {
+      throw new Error("Fill full name, email and password");
+    }
 
-  const body = isAdmin
-    ? { fullName, email, password, adminSecret }
-    : { fullName, email, password };
+    const isAdmin = adminSecret.length > 0;
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body)
-  });
+    // ⚠️ ВАЖНО: выбери ОДИН вариант по твоему backend:
+    // Вариант 1 (если у тебя app.use("/api/auth", ...)):
+    const path = isAdmin ? "/api/auth/register-admin" : "/api/auth/register";
 
-  const data = await res.json();
+    // Вариант 2 (если у тебя app.use("/auth", ...)):
+    // const path = isAdmin ? "/auth/register-admin" : "/auth/register";
 
-  document.getElementById("result").innerText = data.message || JSON.stringify(data);
+    const body = isAdmin
+      ? { fullName, email, password, adminSecret }
+      : { fullName, email, password };
 
-  if (data.token) {
-    sessionStorage.setItem("token", data.token);
+    const data = await api(path, { method: "POST", body });
+
+    if (data?.token) {
+      sessionStorage.setItem("token", data.token);
+      result.innerText = "Account created ✅ Redirecting...";
+      setTimeout(() => location.href = "./index.html", 600);
+      return;
+    }
+
+    result.innerText = data?.message || "Registered, but token not returned.";
+  } catch (e) {
+    result.innerText = e.message;
   }
 }
 </script>
